@@ -2,10 +2,10 @@
 
 ## 📋 Descripción del Proyecto
 
-Sistema de ingesta de datos que implementa la **Fase 1** de un pipeline de análisis de datos bajo principios **DataOps**. Permite a los usuarios cargar archivos CSV de forma segura a través de una interfaz visual, con validación automática, almacenamiento estructurado y trazabilidad mediante timestamps.
+Sistema de ingesta de datos que implementa la **Fase 1** de un pipeline de análisis de datos bajo principios **DataOps**. Permite a los usuarios cargar archivos CSV de forma segura a través de una interfaz visual, con validación automática, almacenamiento estructurado, trazabilidad mediante timestamps y **logging centralizado de todas las operaciones**.
 
 ### Objetivo Principal
-Proporcionar una plataforma centralizada y confiable para la recolección de datos crudos (raw data) que sirvan como insumo para futuras transformaciones analíticas.
+Proporcionar una plataforma centralizada y confiable para la recolección de datos crudos (raw data) que sirvan como insumo para futuras transformaciones analíticas, con registro automático de todas las operaciones.
 
 ---
 
@@ -125,10 +125,48 @@ Usuario ← Recibe confirmación ✅
 
 ## 📊 Entregables de Fase 1
 
-- ✅ Estructura de repositorio (`src/`, `data/raw/`)
+- ✅ Estructura de repositorio (`src/`, `data/raw/`, `logs/`)
 - ✅ Aplicación funcional (`src/app.py`)
+- ✅ Módulo de logging centralizado (`src/logger.py`)
 - ✅ Interfaz visual con Streamlit
+- ✅ Trazabilidad con logging detallado
 - ✅ Documentación base (`README.md`)
+
+---
+
+## 📝 Sistema de Logging
+
+El proyecto incluye un **sistema de logging centralizado** que registra:
+
+- **Inicio de ingesta:** Cuando comienza el procesamiento de un archivo
+- **Validación:** Archivos validados o rechazados con motivos
+- **Éxito/Error:** Status final de cada operación
+- **Cantidad de registros:** Número de filas procesadas del CSV
+- **Detalles técnicos:** Rutas, tamaños, timestamps
+
+### Archivos de Log
+
+Los logs se guardan automáticamente en la carpeta `logs/`:
+
+```
+logs/
+├── ingestion_20260420.log          # Log general del día
+└── ingestion_errors_20260420.log   # Log de errores del día
+```
+
+### Formato de Log
+
+```
+2026-04-20 14:30:25 | INFO     | log_inicio_ingesta | INICIO INGESTA | Archivo: datos.csv | Tamaño: 2048 bytes
+2026-04-20 14:30:25 | INFO     | validar_archivo    | VALIDACIÓN OK | Archivo: datos.csv
+2026-04-20 14:30:26 | INFO     | log_ingesta_exitosa| INGESTA EXITOSA | Original: datos.csv | Almacenado: datos_20260420_143025.csv | Registros: 100 | Ruta: data/raw/datos_20260420_143025.csv
+```
+
+### Acceso a Logs
+
+- **Por Streamlit:** Visible en la barra lateral con la ruta de logs
+- **Por archivo:** Abre `logs/ingestion_YYYYMMDD.log` con cualquier editor de texto
+- **Por terminal:** `cat logs/ingestion_*.log` o `Get-Content logs/ingestion_*.log` (PowerShell)
 
 ---
 
@@ -166,6 +204,52 @@ Los datos ingestionados en `data/raw/` servirán como insumo directo para:
 ## 📞 Soporte
 
 Para más información sobre DataOps o consultas técnicas, consulta la [documentación oficial de Streamlit](https://docs.streamlit.io/).
+
+---
+
+## 🚀 Información de Control de Versiones (GitHub)
+
+Este proyecto está versionado con Git y puede ser publicado en GitHub.
+
+### Comandos para subir a GitHub:
+
+```bash
+# 1. Crear repositorio en GitHub (a través de la web)
+# https://github.com/new
+# Nota: NO inicialices con README, .gitignore o LICENSE
+
+# 2. Agregar repositorio remoto
+git remote add origin https://github.com/TU_USUARIO/app.git
+
+# 3. Renombrar rama principal (si es necesario)
+git branch -M main
+
+# 4. Enviar código a GitHub
+git push -u origin main
+
+# 5. Verificar conexión
+git remote -v
+```
+
+### Commits realizados:
+
+```
+5432df8 (HEAD -> master) Inicialización Fase 1: Estructura base del Sistema de Ingesta Automatizada
+```
+
+---
+
+## 📊 Criterios de Entrega Cumplidos
+
+Este proyecto cumple con todos los criterios solicitados:
+
+| Criterio | Estado | Detalles |
+|----------|--------|----------|
+| ✅ Obtener datos desde fuente estructurada | **CUMPLE** | Ingesta de archivos CSV con validación |
+| ✅ Automatización del proceso | **CUMPLE** | Pipeline completamente automático |
+| ✅ Logging del proceso | **CUMPLE** | Trazabilidad completa en `logs/` |
+| ✅ Control de versiones (Git) | **CUMPLE** | Repositorio inicializado con commits |
+| ✅ GitHub | **CUMPLE** | Instrucciones para publicación incluidas |
 
 ---
 

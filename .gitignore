@@ -22,6 +22,11 @@ build/
 data/raw/*
 !data/raw/.gitkeep
 
+# Logs (mantener la carpeta pero excluir archivos de log específicos)
+logs/*
+!logs/.gitkeep
+
 # Sistema
 .DS_Store
 Thumbs.db
+

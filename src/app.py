@@ -10,6 +10,14 @@ import streamlit as st
 import os
 import shutil
 from datetime import datetime
+from logger import (
+    log_inicio_ingesta,
+    log_validacion,
+    log_ingesta_exitosa,
+    log_error_ingesta,
+    log_operación,
+    obtener_ruta_logs
+)
 
 
 # ============================================================================
@@ -80,10 +88,13 @@ def validar_archivo(archivo_cargado):
     _, extension = os.path.splitext(nombre_archivo)
     
     if extension.lower() not in extensiones_permitidas:
+        motivo = f"Extensión no permitida: {extension}"
+        log_validacion(nombre_archivo, False, motivo)
         st.error(f"❌ Formato de archivo no permitido: {extension}")
         st.info(f"✅ Extensiones permitidas: {', '.join(extensiones_permitidas)}")
         return False
     
+    log_validacion(nombre_archivo, True)
     return True
 
 
@@ -121,31 +132,40 @@ def guardar_archivo(archivo_cargado, nombre_archivo_unico):
     Guarda el archivo cargado en la ruta estandarizada data/raw/.
     
     Implementa manejo de excepciones para evitar fallos abruptos
-    de la aplicación.
+    de la aplicación e incluye conteo de registros.
     
     Parámetros:
         archivo_cargado: Objeto UploadedFile de Streamlit
         nombre_archivo_unico: Nombre único generado con timestamp
     
     Retorna:
-        tuple: (bool, str) - (éxito, ruta_guardada o mensaje_error)
+        tuple: (bool, str, int) - (éxito, ruta_guardada_o_error, num_registros)
     """
     try:
         # Construir ruta completa del destino
         ruta_destino = os.path.join(RAW_DATA_DIR, nombre_archivo_unico)
         
-        # Guardar archivo
+        # Guardar archivo y contar registros
+        contenido = archivo_cargado.getbuffer()
         with open(ruta_destino, "wb") as f:
-            f.write(archivo_cargado.getbuffer())
+            f.write(contenido)
         
-        return True, ruta_destino
+        # Contar número de registros (líneas) en el CSV
+        # Decodificar el contenido para contar líneas
+        contenido_texto = contenido.tobytes().decode('utf-8')
+        num_registros = len(contenido_texto.strip().split('\n')) - 1  # -1 para excluir header
+        
+        return True, ruta_destino, num_registros
     
-    except PermissionError:
-        return False, "❌ Permiso denegado al escribir el archivo"
+    except PermissionError as e:
+        log_error_ingesta(archivo_cargado.name, "PermissionError", str(e))
+        return False, "❌ Permiso denegado al escribir el archivo", 0
     except IOError as e:
-        return False, f"❌ Error de entrada/salida: {str(e)}"
+        log_error_ingesta(archivo_cargado.name, "IOError", str(e))
+        return False, f"❌ Error de entrada/salida: {str(e)}", 0
     except Exception as e:
-        return False, f"❌ Error inesperado al guardar: {str(e)}"
+        log_error_ingesta(archivo_cargado.name, type(e).__name__, str(e))
+        return False, f"❌ Error inesperado al guardar: {str(e)}", 0
 
 
 # ============================================================================
@@ -154,6 +174,7 @@ def guardar_archivo(archivo_cargado, nombre_archivo_unico):
 
 # Crear estructura de directorios al iniciar
 crear_estructura_directorios()
+log_operación("Sistema iniciado", f"Directorio de logs: {obtener_ruta_logs()}")
 
 # Sección 1: Información del usuario
 st.sidebar.markdown("### 📝 Información")
@@ -162,10 +183,12 @@ Este sistema permite cargar archivos CSV que serán:
 - ✅ Validados
 - 📦 Almacenados en `data/raw/`
 - 🔐 Identificados con timestamp para trazabilidad
+- 📝 Todos los eventos quedan registrados en logs/
 """)
 
 st.sidebar.markdown("---")
 st.sidebar.markdown(f"**Ruta de almacenamiento:** `{RAW_DATA_DIR}`")
+st.sidebar.markdown(f"**Ruta de logs:** `{obtener_ruta_logs()}`")
 
 # Sección 2: Componente de carga de archivo
 st.markdown("### 📤 Cargar Dataset")
@@ -180,6 +203,9 @@ if archivo_cargado is not None:
     st.markdown("---")
     st.markdown("### ⚙️ Procesando...")
     
+    # Registrar inicio de ingesta
+    log_inicio_ingesta(archivo_cargado.name, archivo_cargado.size)
+    
     # Paso 1: Validar archivo
     if validar_archivo(archivo_cargado):
         
@@ -187,16 +213,25 @@ if archivo_cargado is not None:
         nombre_unico = generar_nombre_archivo_unico(archivo_cargado.name)
         
         # Paso 3: Guardar archivo
-        exito, resultado = guardar_archivo(archivo_cargado, nombre_unico)
+        exito, resultado, num_registros = guardar_archivo(archivo_cargado, nombre_unico)
         
         # Notificar resultado al usuario
         if exito:
+            # Registrar éxito
+            log_ingesta_exitosa(
+                archivo_cargado.name,
+                nombre_unico,
+                resultado,
+                num_registros
+            )
+            
             st.success(f"✅ **Archivo ingestionado exitosamente**")
             st.markdown(f"""
             **Detalles de la ingesta:**
             - 📄 Nombre original: `{archivo_cargado.name}`
             - 🏷️ Nombre único: `{nombre_unico}`
             - 📦 Tamaño: `{archivo_cargado.size} bytes`
+            - 📊 Registros procesados: `{num_registros}`
             - 📍 Ubicación: `{resultado}`
             - ⏰ Timestamp: `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`
             """)
