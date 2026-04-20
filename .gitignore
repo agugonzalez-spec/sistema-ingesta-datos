@@ -1,0 +1,27 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Streamlit
+.streamlit/
+
+# Datos (excluir archivos cargados pero incluir la estructura)
+data/raw/*
+!data/raw/.gitkeep
+
+# Sistema
+.DS_Store
+Thumbs.db
